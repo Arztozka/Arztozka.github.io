@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="page-title">Сельдь | Охотник</title>
     <!-- Добавляем Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -186,11 +186,7 @@
         const database = firebase.database();
 
         // Получаем ID товара из названия файла (OVnDLyXezkA8gy_Nx8P.html)
-        // В вашем случае имя файла не содержит ID, поэтому можно использовать:
-        // 1. Передавать ID через URL параметры (?id=OVnDLyXezkA8gy_Nx8P)
-        // 2. Или использовать само имя файла как ID
-        const urlParams = new URLSearchParams(window.location.search);
-        const productId = urlParams.get('id') || window.location.pathname.split('/').pop().split('.')[0];
+        const productId = window.location.pathname.split('/').pop().split('.')[0];
 
         // Загружаем данные товара из Firebase
         function loadProduct() {
@@ -212,20 +208,20 @@
                     
                     document.getElementById('product-description').textContent = product.description || "Описание товара отсутствует";
                     
-                    if (product.imageUrl) {
-                        document.getElementById('product-image').style.backgroundImage = `url('${product.imageUrl}')`;
-                    } else {
-                        document.getElementById('product-image').style.backgroundImage = "url('https://via.placeholder.com/600')";
-                    }
+                    // Используем поле image (а не imageUrl) и fallback на placeholder
+                    const imageUrl = product.image || 'https://via.placeholder.com/600';
+                    document.getElementById('product-image').style.backgroundImage = `url('${imageUrl}')`;
                 } else {
                     // Товар не найден
                     document.getElementById('product-title').textContent = "Товар не найден";
                     document.getElementById('product-description').textContent = "Извините, запрошенный товар не существует или был удален.";
+                    document.getElementById('product-image').style.backgroundImage = "url('https://via.placeholder.com/600')";
                 }
             }).catch((error) => {
                 console.error("Ошибка загрузки данных:", error);
                 document.getElementById('product-title').textContent = "Ошибка загрузки";
                 document.getElementById('product-description').textContent = "Произошла ошибка при загрузке данных о товаре. Пожалуйста, попробуйте позже.";
+                document.getElementById('product-image').style.backgroundImage = "url('https://via.placeholder.com/600')";
             });
         }
         
