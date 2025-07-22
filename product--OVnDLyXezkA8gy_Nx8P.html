@@ -169,63 +169,103 @@
         </div>
     </footer>
 
-    <script>
-        // Инициализация Firebase
+   <script>
+        // 1. Инициализация Firebase (должна быть идентична другим страницам)
         const firebaseConfig = {
             apiKey: "AIzaSyBp0UtzwmindIyNXLzdvv4PlUAyLMkD-ig",
             authDomain: "arztozka-f1232.firebaseapp.com",
             databaseURL: "https://arztozka-f1232-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "arztozka-f1232",
-            storageBucket: "arztozka-f1232.firebasestorage.app",
+            storageBucket: "arztozka-f1232.appspot.com",
             messagingSenderId: "48796655055",
             appId: "1:48796655055:web:2fa9cce80bf18f4eebc6ba"
         };
 
         // Инициализируем Firebase
-        firebase.initializeApp(firebaseConfig);
+        const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Получаем ID товара из названия файла (OVnDLyXezkA8gy_Nx8P.html)
-        const productId = window.location.pathname.split('/').pop().split('.')[0];
+        // 2. Получаем ID товара из имени файла (важно точное соответствие)
+        const getProductIdFromFilename = () => {
+            const filename = window.location.pathname.split('/').pop(); // "OVnDLyXezkA8gy_Nx8P.html"
+            return filename.split('.')[0]; // "OVnDLyXezkA8gy_Nx8P"
+        };
 
-        // Загружаем данные товара из Firebase
-        function loadProduct() {
-            const productRef = database.ref('products/' + productId);
+        // 3. Загрузка данных товара
+        const loadProduct = () => {
+            const productId = getProductIdFromFilename();
+            console.log("Пытаемся загрузить товар с ID:", productId);
             
-            productRef.once('value').then((snapshot) => {
-                const product = snapshot.val();
-                
-                if (product) {
-                    // Обновляем данные на странице
-                    document.getElementById('page-title').textContent = `${product.name} | Охотник`;
-                    document.getElementById('product-title').textContent = product.name;
-                    document.getElementById('product-price').textContent = `${parseInt(product.price).toLocaleString('ru-RU')} ₽`;
+            if (!productId) {
+                console.error("Не удалось определить ID товара");
+                showError("Ошибка: неверный ID товара");
+                return;
+            }
+
+            database.ref('products/' + productId).once('value')
+                .then((snapshot) => {
+                    const product = snapshot.val();
+                    console.log("Получены данные:", product);
                     
-                    const stockElement = document.getElementById('product-stock');
-                    stockElement.textContent = product.stock > 0 ? 
-                        `В наличии (${product.stock} шт.)` : 'Нет в наличии';
-                    stockElement.className = product.stock > 0 ? 'in-stock' : 'out-of-stock';
+                    if (!product) {
+                        showError("Товар не найден в базе данных");
+                        return;
+                    }
                     
-                    document.getElementById('product-description').textContent = product.description || "Описание товара отсутствует";
-                    
-                    // Используем поле image (а не imageUrl) и fallback на placeholder
-                    const imageUrl = product.image || 'https://via.placeholder.com/600';
-                    document.getElementById('product-image').style.backgroundImage = `url('${imageUrl}')`;
+                    updateProductUI(product);
+                })
+                .catch((error) => {
+                    console.error("Ошибка Firebase:", error);
+                    showError("Ошибка загрузки данных");
+                });
+        };
+
+        // 4. Обновление интерфейса
+        const updateProductUI = (product) => {
+            // Обновляем текст
+            document.getElementById('page-title').textContent = `${product.name} | Охотник`;
+            document.getElementById('product-title').textContent = product.name || "Без названия";
+            document.getElementById('product-price').textContent = 
+                product.price ? `${parseInt(product.price).toLocaleString('ru-RU')} ₽` : "Цена не указана";
+            
+            // Наличие
+            const stockElement = document.getElementById('product-stock');
+            if (product.stock > 0) {
+                stockElement.textContent = `В наличии (${product.stock} шт.)`;
+                stockElement.className = 'in-stock';
+            } else {
+                stockElement.textContent = 'Нет в наличии';
+                stockElement.className = 'out-of-stock';
+            }
+            
+            // Описание
+            document.getElementById('product-description').textContent = 
+                product.description || "Описание отсутствует";
+            
+            // Изображение (обрабатываем data URL и обычные ссылки)
+            const imageElement = document.getElementById('product-image');
+            if (product.image) {
+                if (product.image.startsWith('data:image') || 
+                    product.image.startsWith('http') || 
+                    product.image.startsWith('https')) {
+                    imageElement.style.backgroundImage = `url('${product.image}')`;
                 } else {
-                    // Товар не найден
-                    document.getElementById('product-title').textContent = "Товар не найден";
-                    document.getElementById('product-description').textContent = "Извините, запрошенный товар не существует или был удален.";
-                    document.getElementById('product-image').style.backgroundImage = "url('https://via.placeholder.com/600')";
+                    imageElement.style.backgroundImage = "url('https://via.placeholder.com/600')";
                 }
-            }).catch((error) => {
-                console.error("Ошибка загрузки данных:", error);
-                document.getElementById('product-title').textContent = "Ошибка загрузки";
-                document.getElementById('product-description').textContent = "Произошла ошибка при загрузке данных о товаре. Пожалуйста, попробуйте позже.";
-                document.getElementById('product-image').style.backgroundImage = "url('https://via.placeholder.com/600')";
-            });
-        }
-        
-        // Загружаем товар при открытии страницы
+            } else {
+                imageElement.style.backgroundImage = "url('https://via.placeholder.com/600')";
+            }
+        };
+
+        // 5. Показать ошибку
+        const showError = (message) => {
+            document.getElementById('product-title').textContent = "Ошибка";
+            document.getElementById('product-description').textContent = message;
+            document.getElementById('product-image').style.backgroundImage = 
+                "url('https://via.placeholder.com/600')";
+        };
+
+        // Запускаем загрузку при готовности DOM
         document.addEventListener('DOMContentLoaded', loadProduct);
     </script>
 </body>
