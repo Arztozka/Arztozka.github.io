@@ -194,15 +194,15 @@
 
         // Получаем ID товара из URL
         const getProductId = () => {
-            // Извлекаем ID из URL вида https://arztozka.github.io/product--OVnDLyXezkA8gy_Nx8P.html
+            // Извлекаем ID из URL вида https://arztozka.github.io/product---OVnD_gK2rykIrBEOld0.html
             const pathParts = window.location.pathname.split('/');
-            const filename = pathParts[pathParts.length - 1]; // "product--OVnDLyXezkA8gy_Nx8P.html"
+            const filename = pathParts[pathParts.length - 1]; // "product---OVnD_gK2rykIrBEOld0.html"
             
             // Удаляем "product--" в начале и ".html" в конце
-            const idWithPrefix = filename.split('.')[0]; // "product--OVnDLyXezkA8gy_Nx8P"
+            const idWithPrefix = filename.split('.')[0]; // "product---OVnD_gK2rykIrBEOld0"
             
             // Удаляем префикс "product--" (8 символов)
-            return idWithPrefix.slice(8); // "OVnDLyXezkA8gy_Nx8P"
+            return idWithPrefix.slice(8); // "-OVnD_gK2rykIrBEOld0"
         };
 
         // Добавляем дефис в начало ID для Firebase
