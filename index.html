@@ -446,49 +446,58 @@
                 workingHoursDetails.innerHTML = `Пн-Пт: 9:00 - 21:00<br>Сб-Вс: 10:00 - 20:00<br><strong>Сегодня (${dayName}): ${workingHours.hours}</strong>`;
             }
             
-            // Загрузка товаров из Firebase
-            const tbody = document.getElementById('products-body');
-            const noResultsElement = document.getElementById('no-results');
-            const searchInput = document.getElementById('search-input');
-            
-            function renderProducts(productsToRender) {
-                tbody.innerHTML = '';
-                
-                if (productsToRender.length === 0) {
-                    noResultsElement.style.display = 'block';
-                    document.getElementById('products-table').style.display = 'none';
-                } else {
-                    noResultsElement.style.display = 'none';
-                    document.getElementById('products-table').style.display = 'table';
-                    
-                    productsToRender.forEach(product => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td><a href="product-${product.id}.html" class="product-link">${product.name}</a></td>
-                            <td>${parseInt(product.price).toLocaleString('ru-RU')} ₽</td>
-                            <td class="${product.stock > 0 ? 'in-stock' : 'out-of-stock'}">
-                                ${product.stock > 0 ? `В наличии (${product.stock} шт.)` : 'Нет в наличии'}
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                }
-            }
-            
-            // Слушаем изменения в базе данных
-            database.ref('products').on('value', (snapshot) => {
-                const products = snapshot.val() || [];
-                renderProducts(products);
-                
-                // Фильтрация при поиске
-                searchInput.addEventListener('input', function(e) {
-                    const searchTerm = e.target.value.toLowerCase().trim();
-                    const filteredProducts = products.filter(product => 
-                        product.name.toLowerCase().includes(searchTerm)
-                    );
-                    renderProducts(filteredProducts);
-                });
-            });
+          // Загрузка товаров из Firebase
+const tbody = document.getElementById('products-body');
+const noResultsElement = document.getElementById('no-results');
+const searchInput = document.getElementById('search-input');
+
+function renderProducts(productsToRender) {
+    tbody.innerHTML = '';
+    
+    if (productsToRender.length === 0) {
+        noResultsElement.style.display = 'block';
+        document.getElementById('products-table').style.display = 'none';
+    } else {
+        noResultsElement.style.display = 'none';
+        document.getElementById('products-table').style.display = 'table';
+        
+        productsToRender.forEach(product => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><a href="product-${product.id}.html" class="product-link">${product.name}</a></td>
+                <td>${parseInt(product.price).toLocaleString('ru-RU')} ₽</td>
+                <td class="${product.stock > 0 ? 'in-stock' : 'out-of-stock'}">
+                    ${product.stock > 0 ? `В наличии (${product.stock} шт.)` : 'Нет в наличии'}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+}
+
+// Слушаем изменения в базе данных
+database.ref('products').on('value', (snapshot) => {
+    const productsObj = snapshot.val() || {};
+    
+    // Преобразуем объект в массив
+    const productsArray = Object.keys(productsObj).map(key => {
+        return {
+            id: key,
+            ...productsObj[key]
+        };
+    });
+    
+    renderProducts(productsArray);
+    
+    // Фильтрация при поиске
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        const filteredProducts = productsArray.filter(product => 
+            product.name && product.name.toLowerCase().includes(searchTerm)
+        );
+        renderProducts(filteredProducts);
+    });
+});
             
             document.getElementById('admin-link').addEventListener('click', function(e) {
                 e.preventDefault();
