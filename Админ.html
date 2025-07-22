@@ -293,16 +293,14 @@
         };
 
         // Инициализируем Firebase
-        firebase.initializeApp(firebaseConfig);
+        const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const auth = firebase.auth();
 
         // Проверка аутентификации
-        <script>
         if (sessionStorage.getItem('admin-authenticated') !== 'true') {
             window.location.href = "index.html";
         }
-    </script>
     </script>
 
     <!-- Шапка -->
@@ -401,6 +399,11 @@
                 
                 const noResultsElement = document.getElementById('no-results');
                 
+                if (!productsData || Object.keys(productsData).length === 0) {
+                    noResultsElement.style.display = 'block';
+                    return;
+                }
+                
                 // Преобразуем объект в массив
                 const productsArray = Object.keys(productsData).map(key => {
                     return {
@@ -410,9 +413,10 @@
                 });
                 
                 // Фильтрация товаров по поисковому запросу
-                const filteredProducts = productsArray.filter(product => 
-                    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-                );
+                const filteredProducts = searchTerm 
+                    ? productsArray.filter(product => 
+                        product.name && product.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    : productsArray;
                 
                 if (filteredProducts.length === 0) {
                     noResultsElement.style.display = 'block';
@@ -424,8 +428,8 @@
                         row.innerHTML = `
                             <td><input type="text" value="${product.name || ''}" id="name-${product.id}"></td>
                             <td><textarea id="description-${product.id}">${product.description || ''}</textarea></td>
-                            <td><input type="number" value="${product.price || ''}" id="price-${product.id}"></td>
-                            <td><input type="number" value="${product.stock || ''}" id="stock-${product.id}"></td>
+                            <td><input type="number" value="${product.price || 0}" id="price-${product.id}"></td>
+                            <td><input type="number" value="${product.stock || 0}" id="stock-${product.id}"></td>
                             <td>
                                 <input type="file" id="image-${product.id}" accept="image/*" class="image-input">
                                 ${product.image ? `<img src="${product.image}" class="table-image-preview">` : ''}
@@ -461,6 +465,9 @@
                         }
                     });
                 }
+            }, (error) => {
+                console.error("Ошибка загрузки данных:", error);
+                alert("Ошибка загрузки данных из базы. Проверьте консоль для подробностей.");
             });
         }
         
@@ -475,35 +482,31 @@
             const imageInput = document.getElementById(`image-${id}`);
             const imageFile = imageInput?.files[0];
             
+            const productData = {
+                name: document.getElementById(`name-${id}`).value,
+                description: document.getElementById(`description-${id}`).value,
+                price: parseInt(document.getElementById(`price-${id}`).value) || 0,
+                stock: parseInt(document.getElementById(`stock-${id}`).value) || 0
+            };
+            
+            if (!productData.name) {
+                alert('Название товара обязательно!');
+                return;
+            }
+            
             if (imageFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // Обновляем данные товара, включая новое изображение
-                    productRef.update({
-                        name: document.getElementById(`name-${id}`).value,
-                        description: document.getElementById(`description-${id}`).value,
-                        price: document.getElementById(`price-${id}`).value,
-                        stock: document.getElementById(`stock-${id}`).value,
-                        image: e.target.result
-                    }).then(() => {
-                        alert('Изменения сохранены!');
-                    }).catch((error) => {
-                        alert('Ошибка при сохранении: ' + error.message);
-                    });
+                    productData.image = e.target.result;
+                    productRef.update(productData)
+                        .then(() => alert('Изменения сохранены!'))
+                        .catch((error) => alert('Ошибка при сохранении: ' + error.message));
                 };
                 reader.readAsDataURL(imageFile);
             } else {
-                // Обновляем данные товара без изменения изображения
-                productRef.update({
-                    name: document.getElementById(`name-${id}`).value,
-                    description: document.getElementById(`description-${id}`).value,
-                    price: document.getElementById(`price-${id}`).value,
-                    stock: document.getElementById(`stock-${id}`).value
-                }).then(() => {
-                    alert('Изменения сохранены!');
-                }).catch((error) => {
-                    alert('Ошибка при сохранении: ' + error.message);
-                });
+                productRef.update(productData)
+                    .then(() => alert('Изменения сохранены!'))
+                    .catch((error) => alert('Ошибка при сохранении: ' + error.message));
             }
         }
         
@@ -511,12 +514,8 @@
         function deleteProduct(id) {
             if (confirm('Вы уверены, что хотите удалить этот товар?')) {
                 database.ref('products/' + id).remove()
-                    .then(() => {
-                        alert('Товар удален!');
-                    })
-                    .catch((error) => {
-                        alert('Ошибка при удалении: ' + error.message);
-                    });
+                    .then(() => alert('Товар удален!'))
+                    .catch((error) => alert('Ошибка при удалении: ' + error.message));
             }
         }
         
@@ -524,49 +523,44 @@
         document.getElementById('add-product').addEventListener('click', function() {
             const name = document.getElementById('product-name').value;
             const description = document.getElementById('product-description').value;
-            const price = document.getElementById('product-price').value;
-            const stock = document.getElementById('product-stock').value;
+            const price = parseInt(document.getElementById('product-price').value) || 0;
+            const stock = parseInt(document.getElementById('product-stock').value) || 0;
             const imageInput = document.getElementById('product-image');
             const imageFile = imageInput.files[0];
             
-            if (name && price && stock) {
-                const newProductRef = database.ref('products').push();
-                
-                // Обработка изображения
-                if (imageFile) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        newProductRef.set({
-                            name: name,
-                            description: description,
-                            price: price,
-                            stock: stock,
-                            image: e.target.result
-                        }).then(() => {
+            if (!name) {
+                alert('Название товара обязательно!');
+                return;
+            }
+            
+            const newProductRef = database.ref('products').push();
+            const productData = {
+                name: name,
+                description: description,
+                price: price,
+                stock: stock
+            };
+            
+            if (imageFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    productData.image = e.target.result;
+                    newProductRef.set(productData)
+                        .then(() => {
                             clearAddForm();
                             alert('Товар успешно добавлен!');
-                        }).catch((error) => {
-                            alert('Ошибка при добавлении товара: ' + error.message);
-                        });
-                    };
-                    reader.readAsDataURL(imageFile);
-                } else {
-                    // Если изображение не выбрано, используем placeholder
-                    newProductRef.set({
-                        name: name,
-                        description: description,
-                        price: price,
-                        stock: stock,
-                        image: "https://via.placeholder.com/600"
-                    }).then(() => {
+                        })
+                        .catch((error) => alert('Ошибка при добавлении товара: ' + error.message));
+                };
+                reader.readAsDataURL(imageFile);
+            } else {
+                productData.image = "https://via.placeholder.com/600";
+                newProductRef.set(productData)
+                    .then(() => {
                         clearAddForm();
                         alert('Товар успешно добавлен!');
-                    }).catch((error) => {
-                        alert('Ошибка при добавлении товара: ' + error.message);
-                    });
-                }
-            } else {
-                alert('Пожалуйста, заполните все обязательные поля!');
+                    })
+                    .catch((error) => alert('Ошибка при добавлении товара: ' + error.message));
             }
         });
         
