@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Охотник - Цены и наличие</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
     <style>
-        /* Общие стили */
         * {
             margin: 0;
             padding: 0;
@@ -26,7 +28,6 @@
             padding: 0 15px;
         }
         
-        /* Шапка */
         header {
             background-color: #2c3e50;
             color: white;
@@ -73,12 +74,10 @@
             color: #3498db;
         }
         
-        /* Основной контент */
         .main-content {
             margin: 30px 0;
         }
         
-        /* Контент с товарами */
         .content {
             flex: 1;
         }
@@ -99,7 +98,6 @@
             font-size: 16px;
         }
         
-        /* Таблица товаров */
         .products-table {
             width: 100%;
             border-collapse: collapse;
@@ -147,7 +145,6 @@
             font-weight: bold;
         }
         
-        /* Сообщение о отсутствии товаров (стили как в админке) */
         .no-results {
             text-align: center;
             padding: 20px;
@@ -160,7 +157,6 @@
             display: none;
         }
         
-        /* Блок информации о магазине */
         .store-details {
             background: white;
             padding: 30px;
@@ -191,7 +187,6 @@
             color: #2c3e50;
         }
         
-        /* Подвал */
         footer {
             background-color: #2c3e50;
             color: white;
@@ -206,7 +201,6 @@
             align-items: center;
         }
         
-        /* Модальное окно для входа */
         .modal {
             display: none;
             position: fixed;
@@ -286,7 +280,6 @@
             background-color: #2980b9;
         }
         
-        /* Адаптивные стили */
         @media (max-width: 768px) {
             .header-content {
                 flex-direction: column;
@@ -329,10 +322,8 @@
             }
         }
     </style>
- </style>
 </head>
 <body>
-    <!-- Шапка -->
     <header>
         <div class="container">
             <div class="header-content">
@@ -347,7 +338,6 @@
         </div>
     </header>
     
-    <!-- Основной контент -->
     <div class="container">
         <div class="main-content">
             <main class="content">
@@ -374,7 +364,6 @@
                     Товары не найдены. Попробуйте изменить критерии поиска.
                 </div>
                 
-                <!-- Информация о магазине -->
                 <div class="store-details">
                     <h2>О нашем магазине</h2>
                     <div class="store-details-grid">
@@ -392,7 +381,6 @@
         </div>
     </div>
     
-    <!-- Подвал -->
     <footer>
         <div class="container">
             <div class="footer-content">
@@ -402,7 +390,6 @@
         </div>
     </footer>
     
-    <!-- Модальное окно для входа в админку -->
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -416,39 +403,42 @@
     </div>
 
     <script>
-        // Функция для определения часов работы по текущему дню недели
+        // Инициализация Firebase (замените на свой конфиг!)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         function getWorkingHours() {
             const now = new Date();
-            const dayOfWeek = now.getDay(); // 0 - воскресенье, 1 - понедельник, ..., 6 - суббота
+            const dayOfWeek = now.getDay();
             
-            // Часы работы:
-            // Пн-Пт: 9:00 - 21:00
-            // Сб-Вс: 10:00 - 20:00
-            if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Пн-Пт
+            if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                 return { hours: "9:00 - 21:00", isWeekend: false };
-            } else { // Сб-Вс
+            } else {
                 return { hours: "10:00 - 20:00", isWeekend: true };
             }
         }
         
-        // Функция для получения названия дня недели
         function getDayName() {
             const days = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
             const now = new Date();
             return days[now.getDay()];
         }
         
-        // Обновляем часы работы при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
-            // Получаем текущие часы работы
             const workingHours = getWorkingHours();
             const dayName = getDayName();
             
-            // Устанавливаем часы работы в шапке
-            const workingHoursHeader = document.getElementById('working-hours-header');
-            workingHoursHeader.textContent = `Часы работы: ${workingHours.hours} (Сегодня ${dayName})`;
+            document.getElementById('working-hours-header').textContent = `Часы работы: ${workingHours.hours} (Сегодня ${dayName})`;
             
-            // Устанавливаем часы работы в блоке информации о магазине
             const workingHoursDetails = document.getElementById('working-hours-details');
             if (workingHours.isWeekend) {
                 workingHoursDetails.innerHTML = `Пн-Пт: 9:00 - 21:00<br>Сб-Вс: 10:00 - 20:00<br><strong>Сегодня (${dayName}): ${workingHours.hours}</strong>`;
@@ -456,13 +446,7 @@
                 workingHoursDetails.innerHTML = `Пн-Пт: 9:00 - 21:00<br>Сб-Вс: 10:00 - 20:00<br><strong>Сегодня (${dayName}): ${workingHours.hours}</strong>`;
             }
             
-            // Загрузка товаров из localStorage
-            const products = JSON.parse(localStorage.getItem('store-products')) || [
-                { id: 1, name: "Смартфон Model X", price: "25990", stock: "5" },
-                { id: 2, name: "Ноутбук UltraBook Pro", price: "64990", stock: "2" },
-                { id: 3, name: "Наушники SoundMax", price: "7490", stock: "0" }
-            ];
-            
+            // Загрузка товаров из Firebase
             const tbody = document.getElementById('products-body');
             const noResultsElement = document.getElementById('no-results');
             const searchInput = document.getElementById('search-input');
@@ -491,51 +475,40 @@
                 }
             }
             
-            // Первоначальная загрузка всех товаров
-            renderProducts(products);
-            
-            // Фильтрация товаров по поиску (только по названию)
-            searchInput.addEventListener('input', function(e) {
-                const searchTerm = e.target.value.toLowerCase().trim();
+            // Слушаем изменения в базе данных
+            database.ref('products').on('value', (snapshot) => {
+                const products = snapshot.val() || [];
+                renderProducts(products);
                 
-                if (searchTerm === '') {
-                    renderProducts(products);
-                    return;
-                }
-                
-                const filteredProducts = products.filter(product => 
-                    product.name.toLowerCase().includes(searchTerm)
-                );
-                
-                renderProducts(filteredProducts);
+                // Фильтрация при поиске
+                searchInput.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase().trim();
+                    const filteredProducts = products.filter(product => 
+                        product.name.toLowerCase().includes(searchTerm)
+                    );
+                    renderProducts(filteredProducts);
+                });
             });
             
-            // Обработчик клика по ссылке "Админ-панель"
             document.getElementById('admin-link').addEventListener('click', function(e) {
                 e.preventDefault();
                 document.getElementById('login-modal').style.display = 'block';
             });
             
-            // Проверка пароля
             document.getElementById('login-btn').addEventListener('click', function() {
                 const password = document.getElementById('admin-password').value;
-                // Здесь должен быть ваш пароль (для примера "admin123")
                 if (password === "admin123") {
-                    // Сохраняем флаг авторизации в sessionStorage
                     sessionStorage.setItem('admin-authenticated', 'true');
-                    // Переходим на страницу админки
-                    window.location.href = "Админ.html";
+                    window.location.href = "admin.html";
                 } else {
                     alert('Неверный пароль!');
                 }
             });
             
-            // Закрытие модального окна
             document.querySelector('.close-modal').addEventListener('click', function() {
                 document.getElementById('login-modal').style.display = 'none';
             });
             
-            // Закрытие при клике вне модального окна
             window.addEventListener('click', function(event) {
                 if (event.target == document.getElementById('login-modal')) {
                     document.getElementById('login-modal').style.display = 'none';
