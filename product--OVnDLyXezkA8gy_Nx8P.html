@@ -69,16 +69,21 @@
             min-height: 400px;
             border-radius: 8px;
             overflow: hidden;
-            background-color: #eee;
+            background-color: #f8f9fa;
             display: flex;
             align-items: center;
             justify-content: center;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
         }
         
         .product-image {
             max-width: 100%;
             max-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: contain;
+            border-radius: 4px;
         }
         
         .product-info {
@@ -161,7 +166,9 @@
                 <h1 class="product-title" id="product-title">Загрузка...</h1>
                 <div class="product-price" id="product-price">—</div>
                 <div class="product-stock" id="product-stock"></div>
+                
                 <p class="product-description" id="product-description">Загрузка данных...</p>
+                
                 <a href="index.html" class="back-link">← На главную страницу</a>
             </div>
         </div>
@@ -194,15 +201,10 @@
 
         // Получаем ID товара из URL
         const getProductId = () => {
-            // Извлекаем ID из URL вида https://arztozka.github.io/product--OVnDLyXezkA8gy_Nx8P.html
             const pathParts = window.location.pathname.split('/');
-            const filename = pathParts[pathParts.length - 1]; // "product--OVnDLyXezkA8gy_Nx8P.html"
-            
-            // Удаляем "product--" в начале и ".html" в конце
-            const idWithPrefix = filename.split('.')[0]; // "product--OVnDLyXezkA8gy_Nx8P"
-            
-            // Удаляем префикс "product--" (8 символов)
-            return idWithPrefix.slice(8); // "OVnDLyXezkA8gy_Nx8P"
+            const filename = pathParts[pathParts.length - 1];
+            const idWithPrefix = filename.split('.')[0];
+            return idWithPrefix.slice(8); // Удаляем "product--" (8 символов)
         };
 
         // Добавляем дефис в начало ID для Firebase
@@ -216,11 +218,6 @@
             const productId = getFirebaseProductId();
             console.log('Загружаем товар с ID:', productId);
             
-            if (!productId) {
-                showError('Не удалось определить ID товара');
-                return;
-            }
-
             database.ref('products/' + productId).once('value')
                 .then((snapshot) => {
                     const product = snapshot.val();
@@ -260,26 +257,28 @@
             
             const imgElement = document.getElementById('product-image');
             if (product.image) {
-                // Проверяем, является ли image data URL (начинается с data:image)
-                if (product.image.startsWith('data:image')) {
-                    imgElement.src = product.image;
-                } else {
-                    // Если это обычный URL, добавляем проверку на http/https
-                    imgElement.src = product.image.startsWith('http') ? product.image : 'https://via.placeholder.com/600';
-                }
+                imgElement.src = product.image;
                 imgElement.alt = product.name || 'Изображение товара';
+                
+                // Оптимизация отображения изображения
+                imgElement.onload = function() {
+                    // Если изображение высокое и узкое - применяем max-height
+                    if (this.naturalHeight > this.naturalWidth * 1.5) {
+                        this.style.maxHeight = '100%';
+                        this.style.width = 'auto';
+                    } else {
+                        // Если изображение широкое - применяем max-width
+                        this.style.maxWidth = '100%';
+                        this.style.height = 'auto';
+                    }
+                };
             }
         };
 
-        // Показать сообщение об ошибке
-        const showError = (message) => {
-            document.getElementById('product-title').textContent = 'Ошибка';
-            document.getElementById('product-description').textContent = message;
-        };
+      
 
         // Загружаем данные при загрузке страницы
         document.addEventListener('DOMContentLoaded', loadProduct);
-
     </script>
 </body>
 </html>
